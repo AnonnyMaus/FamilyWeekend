@@ -3,23 +3,42 @@
 import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import { getMissionForUser, Mission } from "@/lib/missions";
+import { getCardForUser, Card } from "@/lib/missions";
 import { motion, AnimatePresence } from "framer-motion";
-import { Lock, Eye, EyeOff, RefreshCw } from "lucide-react";
+import { Lock, Eye, EyeOff, RefreshCw, Briefcase, User, Sword, Trophy } from "lucide-react";
 import Link from "next/link";
 
 function MissionContent() {
     const searchParams = useSearchParams();
     const userName = searchParams.get("user");
-    const [mission, setMission] = useState<Mission | null>(null);
+    const [card, setCard] = useState<Card | null>(null);
+    const [score, setScore] = useState<number>(0);
+    const [rank, setRank] = useState<number | null>(null);
     const [isOpened, setIsOpened] = useState(false);
     const [isBlur, setIsBlur] = useState(false);
 
     useEffect(() => {
         if (userName) {
-            setMission(getMissionForUser(userName));
+            setCard(getCardForUser(userName));
+            fetchScore(userName);
         }
     }, [userName]);
+
+    const fetchScore = async (name: string) => {
+        try {
+            const res = await fetch('/api/scores');
+            const data = await res.json();
+
+            // Calculate Rank
+            const sortedUsers = Object.keys(data).sort((a, b) => (data[b] || 0) - (data[a] || 0));
+            const userRank = sortedUsers.indexOf(name) + 1;
+
+            setScore(data[name] || 0);
+            if (userRank > 0) setRank(userRank);
+        } catch (e) {
+            console.error("Failed to load scores", e);
+        }
+    };
 
     if (!userName) {
         return (
@@ -29,10 +48,19 @@ function MissionContent() {
         );
     }
 
+    if (!card) {
+        return (
+            <div className="flex h-screen items-center justify-center text-neutral-400 flex-col gap-4">
+                <p>Speler niet gevonden in de administratie.</p>
+                <Link href="/" className="hover:text-gold-500 underline">Keer terug</Link>
+            </div>
+        );
+    }
+
     return (
         <div className="z-10 w-full max-w-md">
 
-            {/* Header - Always visible but subtle */}
+            {/* Header */}
             <div className="text-center mb-8 opacity-50">
                 <p className="text-xs tracking-[0.3em] font-mono text-gold-500/80">CONFIDENTIAL // {userName.toUpperCase()}</p>
             </div>
@@ -56,8 +84,8 @@ function MissionContent() {
                                 <Lock className="w-8 h-8 text-red-700" />
                             </div>
                             <div>
-                                <h2 className="text-2xl font-bold text-neutral-200">TOP SECRET</h2>
-                                <p className="text-neutral-500 text-sm mt-2">Tap to open mission file</p>
+                                <h2 className="text-2xl font-bold text-neutral-200">DOSSIER</h2>
+                                <p className="text-neutral-500 text-sm mt-2">Tik om te openen</p>
                             </div>
                         </div>
 
@@ -66,37 +94,67 @@ function MissionContent() {
                     </motion.div>
                 ) : (
                     <motion.div
-                        key="mission"
+                        key="card"
                         initial={{ y: 20, opacity: 0 }}
                         animate={{ y: 0, opacity: 1 }}
                         transition={{ delay: 0.3, duration: 0.8, type: "spring" }}
                         className="bg-neutral-900 border border-gold-600/20 rounded-xl p-8 shadow-2xl relative overflow-hidden"
                     >
                         {/* Watermark */}
-                        <div className="absolute -right-10 -top-10 text-9xl font-black text-white/5 rotate-12 select-none pointer-events-none">CONFIDENTIAL</div>
+                        <div className="absolute -right-10 -top-10 text-9xl font-black text-white/5 rotate-12 select-none pointer-events-none opacity-10">TOP SECRET</div>
 
                         <div className="relative z-10 space-y-6">
-                            <div className="flex justify-between items-start">
-                                <div className="bg-gold-500/10 text-gold-500 px-3 py-1 rounded text-xs font-bold tracking-wider inline-block border border-gold-500/20">
-                                    MISSION #{mission?.id.toString().padStart(3, '0')}
+                            <div className="flex justify-between items-center border-b border-white/10 pb-4">
+                                <div className="text-gold-500 font-bold tracking-widest text-sm uppercase">
+                                    Jouw Karakter
                                 </div>
-                                <button onClick={() => setIsBlur(!isBlur)} className="text-neutral-500 hover:text-white transition-colors">
-                                    {isBlur ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                                </button>
+                                <div className="flex items-center gap-3">
+                                    {/* Score Badge */}
+                                    <div className="flex items-center gap-1.5 bg-gold-500/10 border border-gold-500/20 px-2 py-1 rounded text-gold-400 text-xs font-mono">
+                                        <Trophy className="w-3 h-3" />
+                                        <span>#{rank ?? '-'} / {score}pts</span>
+                                    </div>
+                                    <button onClick={() => setIsBlur(!isBlur)} className="text-neutral-500 hover:text-white transition-colors">
+                                        {isBlur ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                                    </button>
+                                </div>
                             </div>
 
-                            <div className={`space-y-4 transition-all duration-300 ${isBlur ? 'blur-md opacity-50 select-none' : ''}`}>
-                                <h3 className="text-neutral-400 text-sm uppercase tracking-widest border-b border-neutral-800 pb-2">Your Objective</h3>
-                                <p className="text-2xl md:text-3xl font-serif text-white leading-relaxed">
-                                    {mission?.text}
-                                </p>
+                            <div className={`space-y-6 transition-all duration-300 ${isBlur ? 'blur-md opacity-50 select-none' : ''}`}>
+
+                                {/* Item 1: Rol */}
+                                <div className="space-y-1">
+                                    <div className="flex items-center gap-2 text-neutral-400 text-xs uppercase tracking-wider">
+                                        <User className="w-3 h-3" />
+                                        <span>Rol</span>
+                                    </div>
+                                    <p className="text-2xl font-serif text-white">{card.role}</p>
+                                </div>
+
+                                {/* Item 2: Motief */}
+                                <div className="space-y-1">
+                                    <div className="flex items-center gap-2 text-neutral-400 text-xs uppercase tracking-wider">
+                                        <Briefcase className="w-3 h-3" />
+                                        <span>Motief</span>
+                                    </div>
+                                    <p className="text-2xl font-serif text-white">{card.motive}</p>
+                                </div>
+
+                                {/* Item 3: Wapen */}
+                                <div className="space-y-1">
+                                    <div className="flex items-center gap-2 text-neutral-400 text-xs uppercase tracking-wider">
+                                        <Sword className="w-3 h-3" />
+                                        <span>Wapen</span>
+                                    </div>
+                                    <p className="text-2xl font-serif text-red-500">{card.weapon}</p>
+                                </div>
+
                             </div>
 
-                            <div className="pt-8 border-t border-neutral-800 flex flex-col gap-4 text-center">
-                                <p className="text-xs text-red-500 font-mono animate-pulse">
-                                    DO NOT SHARE THIS INFORMATION
+                            <div className="pt-6 border-t border-neutral-800 text-center">
+                                <p className="text-[10px] text-neutral-600 font-mono">
+                                    HOUD DIT KAARTJE GEHEIM
                                 </p>
-
                             </div>
                         </div>
                     </motion.div>
@@ -112,7 +170,7 @@ function MissionContent() {
                 >
                     <Link href="/" className="inline-flex items-center text-xs text-neutral-600 hover:text-neutral-400 transition-colors gap-2">
                         <RefreshCw className="w-3 h-3" />
-                        Reset Login
+                        Terug naar start
                     </Link>
                 </motion.div>
             )}
@@ -124,10 +182,8 @@ function MissionContent() {
 export default function MissionPage() {
     return (
         <main className="flex min-h-screen flex-col items-center justify-center p-4 bg-neutral-950 overflow-hidden relative">
-            {/* Background patterns */}
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-neutral-800/20 via-transparent to-transparent opacity-50 pointer-events-none" />
-
-            <Suspense fallback={<div className="text-neutral-500 animate-pulse">Decrypting...</div>}>
+            <Suspense fallback={<div className="text-neutral-500 animate-pulse">Dossier laden...</div>}>
                 <MissionContent />
             </Suspense>
         </main>
