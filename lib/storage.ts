@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { kv } from '@vercel/kv';
+import { createClient } from '@vercel/kv';
 
 const DATA_DIR = path.join(process.cwd(), 'data');
 const SCORES_FILE = path.join(DATA_DIR, 'scores.json');
@@ -9,10 +9,15 @@ export interface ScoreData {
     [userName: string]: number;
 }
 
-const USE_KV = !!process.env.KV_REST_API_URL;
+// Support both Vercel KV (Legacy) and Upstash Redis (Marketplace)
+const KV_URL = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
+const KV_TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
+
+const kv = (KV_URL && KV_TOKEN) ? createClient({ url: KV_URL, token: KV_TOKEN }) : null;
+const USE_KV = !!kv;
 
 export async function getScores(): Promise<ScoreData> {
-    if (USE_KV) {
+    if (USE_KV && kv) {
         try {
             const scores = await kv.hgetall('scores');
             return (scores as ScoreData) || {};
@@ -43,7 +48,7 @@ async function saveScoresLocal(scores: ScoreData) {
 }
 
 export async function updateScore(userName: string, delta: number): Promise<ScoreData> {
-    if (USE_KV) {
+    if (USE_KV && kv) {
         await kv.hincrby('scores', userName, delta);
         return await getScores();
     } else {
@@ -55,7 +60,7 @@ export async function updateScore(userName: string, delta: number): Promise<Scor
 }
 
 export async function setScore(userName: string, value: number): Promise<ScoreData> {
-    if (USE_KV) {
+    if (USE_KV && kv) {
         await kv.hset('scores', { [userName]: value });
         return await getScores();
     } else {
