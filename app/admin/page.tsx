@@ -3,12 +3,16 @@
 import { useState, useEffect } from "react";
 import { ASSIGNMENTS, ATTENDEES, Card, getCardForUser } from "@/lib/missions";
 import { motion } from "framer-motion";
+import { Home, Trophy, Trash2, AlertTriangle } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 export default function AdminPage() {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [password, setPassword] = useState("");
     const [scores, setScores] = useState<Record<string, number>>({});
     const [loading, setLoading] = useState(true);
+    const router = useRouter();
 
     // Filter lists
     const assignments = Object.entries(ASSIGNMENTS).map(([name, card]) => ({ name, ...card }));
@@ -36,6 +40,18 @@ export default function AdminPage() {
         const res = await fetch('/api/scores', {
             method: 'POST',
             body: JSON.stringify({ action: 'update', userName, delta }),
+            headers: { 'Content-Type': 'application/json' }
+        });
+        const newScores = await res.json();
+        setScores(newScores);
+    };
+
+    const resetAllScores = async () => {
+        if (!confirm("ARE YOU SURE? This will wipe ALL scores to 0. This cannot be undone.")) return;
+
+        const res = await fetch('/api/scores', {
+            method: 'POST',
+            body: JSON.stringify({ action: 'reset' }),
             headers: { 'Content-Type': 'application/json' }
         });
         const newScores = await res.json();
@@ -75,9 +91,23 @@ export default function AdminPage() {
 
     return (
         <main className="min-h-screen bg-neutral-950 p-4 md:p-8 text-neutral-200">
-            <h1 className="text-3xl text-gold-500 font-serif mb-8 border-b border-gold-500/20 pb-4">Hanzinelle Admin</h1>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {/* Header / Navigation */}
+            <header className="flex flex-col md:flex-row justify-between items-center mb-8 border-b border-gold-500/20 pb-4 gap-4">
+                <h1 className="text-3xl text-gold-500 font-serif">Hanzinelle Admin</h1>
+                <div className="flex gap-3">
+                    <Link href="/" className="flex items-center gap-2 px-4 py-2 bg-neutral-800 hover:bg-neutral-700 rounded text-sm transition-colors">
+                        <Home className="w-4 h-4" />
+                        Home
+                    </Link>
+                    <Link href="/leaderboard" className="flex items-center gap-2 px-4 py-2 bg-neutral-800 hover:bg-neutral-700 rounded text-sm transition-colors">
+                        <Trophy className="w-4 h-4" />
+                        Leaderboard
+                    </Link>
+                </div>
+            </header>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
 
                 {/* Section 1: Bulk Actions */}
                 <div className="space-y-8">
@@ -138,9 +168,9 @@ export default function AdminPage() {
 
                 {/* Section 2: Leaderboard & Individual Edit */}
                 <div className="space-y-8">
-                    <section className="bg-neutral-900/50 p-6 rounded-lg border border-neutral-800">
+                    <section className="bg-neutral-900/50 p-6 rounded-lg border border-neutral-800 h-fit">
                         <h2 className="text-xl font-bold mb-4 text-white">Leaderboard & Edit</h2>
-                        <div className="space-y-2">
+                        <div className="space-y-2 max-h-[600px] overflow-y-auto pr-2">
                             {ATTENDEES.sort((a, b) => (scores[b] || 0) - (scores[a] || 0)).map((name, i) => (
                                 <div key={name} className="flex items-center justify-between bg-black/40 p-3 rounded">
                                     <div className="flex items-center gap-4">
@@ -155,6 +185,22 @@ export default function AdminPage() {
                                 </div>
                             ))}
                         </div>
+                    </section>
+
+                    {/* DANGER ZONE */}
+                    <section className="bg-red-900/10 p-6 rounded-lg border border-red-900/30">
+                        <div className="flex items-center gap-3 mb-4 text-red-400">
+                            <AlertTriangle className="w-5 h-5" />
+                            <h2 className="text-xl font-bold">Danger Zone</h2>
+                        </div>
+                        <button
+                            onClick={resetAllScores}
+                            className="w-full flex items-center justify-center gap-2 bg-red-900/50 hover:bg-red-800 text-red-200 font-bold py-4 rounded-lg border border-red-900 transition-colors"
+                        >
+                            <Trash2 className="w-5 h-5" />
+                            RESET ALL SCORES TO ZERO
+                        </button>
+                        <p className="text-xs text-red-500/60 mt-2 text-center">Warning: This action cannot be undone.</p>
                     </section>
                 </div>
             </div>

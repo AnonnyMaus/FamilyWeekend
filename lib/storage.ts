@@ -70,3 +70,13 @@ export async function setScore(userName: string, value: number): Promise<ScoreDa
         return scores;
     }
 }
+
+export async function resetScores(): Promise<ScoreData> {
+    if (USE_KV && kv) {
+        await kv.del('scores');
+        return {};
+    } else {
+        await saveScoresLocal({});
+        return {};
+    }
+}

@@ -17,6 +17,9 @@ export async function POST(request: Request) {
             newScores = await updateScore(userName, delta);
         } else if (action === 'set' && userName && typeof value === 'number') {
             newScores = await setScore(userName, value);
+        } else if (action === 'reset') {
+            const { resetScores } = await import('@/lib/storage');
+            newScores = await resetScores();
         } else {
             newScores = await getScores(); // Just return current scores if invalid action to avoid crash
         }
