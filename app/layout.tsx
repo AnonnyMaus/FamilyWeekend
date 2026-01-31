@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-    title: "Secret Michael",
-    description: "Jouw geheime missie voor het familieweekend",
+    title: "HANZINELLE DETECTIVE PROGRAMM",
+    description: "Officiële Dossiers & Bewijsmateriaal",
 };
 
 export default function RootLayout({
