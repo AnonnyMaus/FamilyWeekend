@@ -153,7 +153,7 @@ function MissionContent() {
 
                             <div className="pt-6 border-t border-neutral-800 text-center">
                                 <p className="text-[10px] text-neutral-600 font-mono">
-                                    HOUD DIT KAARTJE GEHEIM
+                                    BEN JIJ DE BESTE DETECTIEVE VAN HANZINELLE?
                                 </p>
                             </div>
                         </div>
